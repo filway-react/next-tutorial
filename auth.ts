@@ -11,16 +11,19 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
-  callbacks: {
-    async signIn({ user }) {
-      const existingUser = await getUserById(user.id)
-
-      if (!existingUser || !existingUser.emailVerified) {
-        return false
-      }
-
-      return true
+  pages: {
+    signIn: '/auth/login',
+    error: '/auth/error',
+  },
+  events: {
+    async linkAccount({ user }) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      })
     },
+  },
+  callbacks: {
     async session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub
@@ -47,4 +50,5 @@ export const {
   adapter: PrismaAdapter(db),
   session: { strategy: 'jwt' },
   ...authConfig,
+  secret: process.env.NEXTAUTH_SECRET,
 })
